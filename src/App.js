@@ -120,7 +120,7 @@ function filterGraphData(graphData, keyword) {
 export default function App() {
   const [width, setWith] = useState('100%');
   const [height, setHeight] = useState('400px');
-  const [key, setKey] = useState(0)
+  const [key, setKey] = useState(0);
   const newGraphData = React.useMemo(
     () => formatExports(exports, app_dictionary),
     []
@@ -182,9 +182,10 @@ export default function App() {
       },
     },
     {
-      selector: "node[type='device']",
+      selector: "node[type='app']",
       style: {
         shape: 'rectangle',
+        'background-color': 'orange',
       },
     },
     {
@@ -214,14 +215,14 @@ export default function App() {
 
   React.useEffect(() => {
     setGraphData(filterGraphData(newGraphData, 'User'));
-    setKey(key + 1)
+    setKey(key + 1);
   }, []);
 
   console.log(searchText, graphData);
   return (
     <>
       <div>
-        <h1>Cytoscape example</h1>
+        <h1>Remote module explorer example</h1>
         <input
           placeholder="Type submodule name"
           value={searchText}
@@ -229,8 +230,9 @@ export default function App() {
         />
 
         <button
-          onClick={() =>{
-            setGraphData(filterGraphData(newGraphData, searchText));setKey(key + 1)
+          onClick={() => {
+            setGraphData(filterGraphData(newGraphData, searchText));
+            setKey(key + 1);
           }}
         >
           search
