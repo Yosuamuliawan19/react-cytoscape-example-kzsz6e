@@ -588,3 +588,8 @@ export const exports = [
     direct: true,
   },
 ];
+
+export const app_dictionary = {
+  99171: 'space-lib-registry',
+  99172: 'SeaTalk Bot Management',
+};

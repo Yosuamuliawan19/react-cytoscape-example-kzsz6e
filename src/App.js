@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import './style.css';
 import CytoscapeComponent from 'react-cytoscapejs';
-import { exports } from './exports';
+import Cytoscape from 'cytoscape';
+import { exports, app_dictionary } from './exports';
+import klay from 'cytoscape-klay';
+import { Input, Button } from 'antd';
+
+Cytoscape.use(klay);
 
 // {
 //   id: 1,
@@ -15,7 +20,7 @@ import { exports } from './exports';
 //   updated_at: 1667546561260,
 //   direct: true,
 // },
-function formatExports(exports) {
+function formatExports(exports, app_dictionary) {
   // const submoduleIDmap = {};
   // const moduleIDmap = {};
   // const appIDmap = {};
@@ -31,7 +36,6 @@ function formatExports(exports) {
     } = edgeData;
     const key = `${source}.to.${target}`;
     edges[key] = edgeData;
-    
   };
 
   exports.map((e) => {
@@ -43,10 +47,18 @@ function formatExports(exports) {
 
     // Create the nodes
     const importer_node = {
-      data: { id: e.importer_app_id, label: e.importer_app_id, type: 'app' },
+      data: {
+        id: e.importer_app_id,
+        label: app_dictionary[e.importer_app_id],
+        type: 'app',
+      },
     };
     const exporter_node = {
-      data: { id: e.exporter_app_id, label: e.exporter_app_id, type: 'app' },
+      data: {
+        id: e.exporter_app_id,
+        label: app_dictionary[e.exporter_app_id],
+        type: 'app',
+      },
     };
     const module_node = {
       data: { id: moduleId, label: e.module_name, type: 'module' },
@@ -80,7 +92,7 @@ function formatExports(exports) {
       data: { source: submoduleId, target: e.importer_app_id },
     });
   });
-  console.log('Object.values(edges)', Object.values(edges))
+  console.log('Object.values(edges)', Object.values(edges));
   return {
     nodes: [
       ...Object.values(appNodes),
@@ -91,56 +103,56 @@ function formatExports(exports) {
   };
 }
 
+function filterGraphData(graphData, keyword) {
+  const existingNode = new Set();
+  const nodes = graphData.nodes
+    .map((node) => {
+      if (
+        node.data.type === 'app' ||
+        node.data.type === 'module' ||
+        node.data.label?.includes(keyword)
+      ) {
+        existingNode.add(node.data.id);
+        return node;
+      }
+      return null;
+    })
+    .filter(Boolean);
+  console.log(nodes, existingNode);
+  const edges = graphData.edges
+    .map((edge) => {
+      if (
+        existingNode.has(edge.data.source) &&
+        existingNode.has(edge.data.target)
+      ) {
+        return edge;
+      }
+      return null;
+    })
+    .filter(Boolean);
+
+  return {
+    nodes: nodes,
+    edges: edges,
+  };
+}
+
 export default function App() {
   const [width, setWith] = useState('100%');
   const [height, setHeight] = useState('400px');
-  const newGraphData = formatExports(exports);
+  const newGraphData = React.useMemo(
+    () => formatExports(exports, app_dictionary),
+    []
+  );
+  const [searchText, setSearchText] = useState('');
+
   const [graphData, setGraphData] = useState({
-    nodes: [
-      { data: { id: '1', label: 'IP 1', type: 'ip' } },
-      { data: { id: '2', label: 'Device 1', type: 'device' } },
-      { data: { id: '3', label: 'IP 2', type: 'ip' } },
-      { data: { id: '4', label: 'Device 2', type: 'device' } },
-      { data: { id: '5', label: 'Device 3', type: 'device' } },
-      { data: { id: '6', label: 'IP 3', type: 'ip' } },
-      { data: { id: '7', label: 'Device 5', type: 'device' } },
-      { data: { id: '8', label: 'Device 6', type: 'device' } },
-      { data: { id: '9', label: 'Device 7', type: 'device' } },
-      { data: { id: '10', label: 'Device 8', type: 'device' } },
-      { data: { id: '11', label: 'Device 9', type: 'device' } },
-      { data: { id: '12', label: 'IP 3', type: 'ip' } },
-      { data: { id: '13', label: 'Device 10', type: 'device' } },
-    ],
-    edges: [
-      {
-        data: { source: '1', target: '2', label: 'Node2' },
-      },
-      {
-        data: { source: '3', target: '4', label: 'Node4' },
-      },
-      {
-        data: { source: '3', target: '5', label: 'Node5' },
-      },
-      {
-        data: { source: '6', target: '5', label: ' 6 -> 5' },
-      },
-      {
-        data: { source: '6', target: '7', label: ' 6 -> 7' },
-      },
-      {
-        data: { source: '6', target: '8', label: ' 6 -> 8' },
-      },
-      {
-        data: { source: '6', target: '9', label: ' 6 -> 9' },
-      },
-      {
-        data: { source: '3', target: '13', label: ' 3 -> 13' },
-      },
-    ],
+    nodes: [],
+    edges: [],
   });
 
   const layout = {
-    name: 'breadthfirst',
+    name: 'klay',
     fit: true,
     // circle: true,
     directed: true,
@@ -219,10 +231,24 @@ export default function App() {
 
   let myCyRef;
 
+  React.useEffect(() => {
+    setGraphData(filterGraphData(newGraphData, 'a'));
+  }, []);
+
   return (
     <>
       <div>
         <h1>Cytoscape example</h1>
+        <Input
+          placeholder="Type submodule name"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+        <Button
+          onClick={() =>
+            setGraphData(filterGraphData(newGraphData, searchText))
+          }
+        />
         <div
           style={{
             border: '1px solid',
@@ -230,7 +256,7 @@ export default function App() {
           }}
         >
           <CytoscapeComponent
-            elements={CytoscapeComponent.normalizeElements(newGraphData)}
+            elements={CytoscapeComponent.normalizeElements(graphData)}
             // pan={{ x: 200, y: 200 }}
             style={{ width: width, height: height }}
             zoomingEnabled={true}
