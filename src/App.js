@@ -8,23 +8,7 @@ import { Input, Button } from 'antd';
 
 Cytoscape.use(klay);
 
-// {
-//   id: 1,
-//   env: 0,
-//   importer_app_id: 99171,
-//   exporter_app_id: 99172,
-//   module_id: 353,
-//   module_name: 'components',
-//   submodule_name: 'then',
-//   app_id: 99172,
-//   updated_at: 1667546561260,
-//   direct: true,
-// },
 function formatExports(exports, app_dictionary) {
-  // const submoduleIDmap = {};
-  // const moduleIDmap = {};
-  // const appIDmap = {};
-
   const appNodes = {};
   const moduleNodes = {};
   const submoduleNodes = {};
@@ -41,9 +25,6 @@ function formatExports(exports, app_dictionary) {
   exports.map((e) => {
     const submoduleId = `${e.app_id},${e.module_name},${e.submodule_name}`;
     const moduleId = `${e.app_id},${e.module_name}`;
-
-    // submoduleIDmap[submoduleId] = e.submodule_name;
-    // moduleIDmap[e.module_id] = e.module_name;
 
     // Create the nodes
     const importer_node = {
@@ -118,7 +99,6 @@ function filterGraphData(graphData, keyword) {
       return null;
     })
     .filter(Boolean);
-  console.log(nodes, existingNode);
   const edges = graphData.edges
     .map((edge) => {
       if (
@@ -140,6 +120,7 @@ function filterGraphData(graphData, keyword) {
 export default function App() {
   const [width, setWith] = useState('100%');
   const [height, setHeight] = useState('400px');
+  const [key, setKey] = useState(0)
   const newGraphData = React.useMemo(
     () => formatExports(exports, app_dictionary),
     []
@@ -232,24 +213,30 @@ export default function App() {
   let myCyRef;
 
   React.useEffect(() => {
-    setGraphData(filterGraphData(newGraphData, 'a'));
+    setGraphData(filterGraphData(newGraphData, 'User'));
+    setKey(key + 1)
   }, []);
 
+  console.log(searchText, graphData);
   return (
     <>
       <div>
         <h1>Cytoscape example</h1>
-        <Input
+        <input
           placeholder="Type submodule name"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
-        <Button
-          onClick={() =>
-            setGraphData(filterGraphData(newGraphData, searchText))
-          }
-        />
+
+        <button
+          onClick={() =>{
+            setGraphData(filterGraphData(newGraphData, searchText));setKey(key + 1)
+          }}
+        >
+          search
+        </button>
         <div
+          key={key}
           style={{
             border: '1px solid',
             backgroundColor: '#f5f6fe',
